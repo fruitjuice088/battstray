@@ -56,9 +56,12 @@ def create_image(percent: float, charging: bool):
 
 
 def update_icon(icon):
-    time.sleep(1)  # delay for icon.visible
+    while not icon.visible:
+        time.sleep(1)
+
     last_percent = None
     last_charging = None
+
     while icon.visible:
         battery = psutil.sensors_battery()
         percent = battery.percent
@@ -68,6 +71,9 @@ def update_icon(icon):
             icon.icon = create_image(percent, charging)
             charge_text = "Charging" if charging else "Not charging"
             icon.title = f"{charge_text}: {percent}%"
+
+        last_percent = percent
+        last_charging = charging
 
         time.sleep(UPDATE_RATE_SEC)
 
@@ -80,12 +86,11 @@ def main():
     icon = pystray.Icon("battstray")
     icon.menu = pystray.Menu(item("Exit", lambda: quit_app(icon)))
 
-    # バッテリー残量のアイコンを設定
+    # Setup battery icon
     battery = psutil.sensors_battery()
     icon.icon = create_image(battery.percent, battery.power_plugged)
-    icon.title = f"Battery: {battery.percent}%"
 
-    # 別スレッドでアイコンの更新を開始
+    # start updating battery status info
     threading.Thread(target=update_icon, args=(icon,), daemon=True).start()
     icon.run()
 
